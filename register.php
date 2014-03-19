@@ -68,9 +68,16 @@ city<br>
 state<br>
 <select name="state">
 <?php
+
 		//iterate through the list of states in the array and render them on the register page
 		foreach ($states as $idx => $statecode) {
+
+			if($statecode == $state){
+			echo "<option value='" . $statecode . "' selected>" . $statecode . "</option>";
+				}
+			else{
 			echo "<option value='" . $statecode . "'>" . $statecode . "</option>";
+			} //end if
 		}
 
 ?>	
