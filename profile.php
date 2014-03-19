@@ -1,6 +1,10 @@
 <?php
 include 'includes/config.inc.php';
 
+session_start(); //carry over any existing session variables with this function
+
+$id = $_SESSION['uid']; //store out the user id session variable for use in queries
+
 $errMsgs = array();
 
 //check to see if data was set from the form
@@ -26,6 +30,7 @@ if(isset($_POST['update'])){
 <head></head>
 <body>
 <form name="profileform" action="<?php echo $_SERVER['PHP_SELF'];?>" method="POST">
+<div align="right"><a href="logout.php">Logout</a></div>
 <div style="background-color:green;">
 <h1>Update Your Profile</h1>
 <div style="background-color:black;color:white;">
@@ -40,10 +45,9 @@ if(isset($_POST['update'])){
 </div>
 <?php
 
-//this will eventually be a session variable
-	$tmpuid = "2";
+
 //query the db for the user's profile info
-$profileInfo = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM ".USERS." WHERE id = '".$tmpuid."'") or die("Unable to get your info!");
+$profileInfo = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM ".USERS." WHERE id = '$id'") or die("Unable to get your info!");
 
 //display their info except for the password
 while($flds = mysql_fetch_array($profileInfo)){

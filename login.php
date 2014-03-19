@@ -3,6 +3,14 @@ include 'includes/config.inc.php';
 
 $errMsgs = array();
 
+if(isset($_GET['msg'])){
+
+$errMsgs[] = $_GET['msg'];
+
+}
+
+
+
 if(isset($_POST['submit'])){
 
 	$email = $_POST['email'];
@@ -22,17 +30,48 @@ if(isset($_POST['submit'])){
 	}	
 
 	//retrieve the password based on the email address
-	$loginQry = mysql_query("SELECT pwd, id FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt')") or die(mysql_error());
+	$loginQry = mysql_query("SELECT pwd, id, full_name FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt')") or die(mysql_error());
 
-	list($password,$id) = mysql_fetch_row($loginQry);
+	list($password,$id,$fname) = mysql_fetch_row($loginQry);
 
 
 	//logic here for logging in
 	if(mysql_num_rows($loginQry) > 0){
-		echo "Num of rows returned is " . mysql_num_rows($loginQry);
+
+		if(empty($errMsgs)){
+
+			//if pwds match then get some of the basic info to store into a session variable
+			if($pwdHashed == $password){
+
+				//start the session
+				session_start();
+
+				//clear out old session data and create a new one just in case
+				session_regenerate_id(true);
+
+				//store session variables here
+				$_SESSION['uid'] = $id;
+				$_SESSION['full_name'] = $fname;
+
+				//redirect to a new location
+				header("Location: ".SITE_BASE . "/profile.php");
+
+			}//end if
+
+			else{
+				$errMsgs[] = "Passwords don't match in our records. Try a different password. Or, " . REGISTER;
+			}
+
+		}//end if
+
+	}//end if
+	else{
+			$errMsgs[] = "User " . $email . " could not be found.  Please try another set of credentials, or " . REGISTER;
 	}
 
-}
+
+
+}//end if
 
 
 ?>
@@ -44,6 +83,8 @@ if(isset($_POST['submit'])){
 	foreach ($errMsgs as $errKey => $msg) {
 		echo $msg . "<br>";
 	}
+
+
 
 ?>
 </div>

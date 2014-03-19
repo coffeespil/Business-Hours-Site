@@ -11,13 +11,13 @@ define("FAVES","bhours_users_favorites_mmorgan");//users table as a constant
 //site base
 define ("SITE_BASE", "http://".$_SERVER['HTTP_HOST']."/bhours");
 define ("SITE_ROOT", $_SERVER['DOCUMENT_ROOT']."/bhours");
+define("REGISTER", "<a href='register.php'>register</a>");
 
 //API credentials
 define("TEMBOO_NAME","coffeespil");
 define("TEMBOO_PROJ","myFirstApp");
 define("TEMBOO_KEY","eeed6c5954ae483c92bde95136ad8a97");
 define("PLACES_KEY","AIzaSyDvDhrZ4ev2aSiEucD5VdVjaBsCYwISDpw");
-
 
 //set connection to be used across site
 $link = mysql_connect(DB_HOST, DB_USER, DB_PASS) or die("Couldn't make connection.");
@@ -40,6 +40,9 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 	//set the salt for the email address to global so its accessible to the function
 	global $salt;
 	global $link;
+
+	//set the id session for use in the function	
+	$id = $_SESSION['uid'];	
 
 //set the page name so that the function can be reused for profile or register pages
 	$page = basename($_SERVER['PHP_SELF']);
@@ -86,8 +89,9 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 	if($page == "profile.php"){
 	//check to see if email address has been updated from profile page
 	//if it has been updated a check to see if it is already taken will need to be done	
-	
-	$emailChanged = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM " . USERS . " WHERE id = '2'") or die("Unable to get your info!");
+
+
+	$emailChanged = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM " . USERS . " WHERE id = '$id'") or die("Unable to get your info!");
 	//will be updated with session variable
   	
   	$storedEmail = mysql_fetch_array($emailChanged);
@@ -115,8 +119,6 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 //hash the password before inserting it into the table
 	$passwrd = hashpass($pwd);
 
-	echo "Pwd upon reg: " . $passwrd;
-
 	if($page == "register.php"){
 
 	$registerMe = mysql_query("INSERT INTO ".USERS." (full_name, email, pwd, city, state, postal_code, activation_code, last_login) VALUES ('$full_name', AES_ENCRYPT('$email', '$salt'), '$passwrd', '$city', '$state' , '$postal_code' , '$activationcode','$date')", $link) or die("Unable to insert data");
@@ -129,7 +131,7 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 
 	if($page == "profile.php"){
 
-	$updProfile = mysql_query("UPDATE ". USERS . " SET full_name = '" . $full_name . "', email = AES_ENCRYPT('" . $email . "', '$salt'), city='" . $city . "', state = '" . $state . "', postal_code = '" . $postal_code . "', pwd = '" . $pwd . "' where id='2'"); 
+	$updProfile = mysql_query("UPDATE ". USERS . " SET full_name = '" . $full_name . "', email = AES_ENCRYPT('" . $email . "', '$salt'), city='" . $city . "', state = '" . $state . "', postal_code = '" . $postal_code . "', pwd = '" . $pwd . "' where id='$id'"); 
 	//id will be updated to session when sessions are hooked up
 
 	if($updProfile){
@@ -192,6 +194,25 @@ function isvalidPwd($pwd){
 		return false;
 	}
 		return true;
+}
+
+//this logout function is called from the logout page and redirects to login page with a confirmation message
+function logout($logoutmsg){
+
+	//check if there is a session so it can be destroyed properly
+	if(!isset($_SESSION)){
+		session_start();
+						}
+
+	unset($_SESSION['uid']);
+	unset($_SESSION['full_name']);
+
+	session_unset();
+	session_destroy();
+
+	header("Location: ".SITE_BASE."/login.php?msg=" . $logoutmsg);
+
+
 }
 
 ?>
