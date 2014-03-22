@@ -1,5 +1,7 @@
 <?php
-ini_set('display_errors', 'Off');
+require 'php-sdk/src/temboo.php';
+
+ini_set('display_errors', 'On');
 error_reporting(E_ALL | E_STRICT);
 
 //define db constants
@@ -25,6 +27,10 @@ define("TEMBOO_PROJ","myFirstApp");
 define("TEMBOO_KEY","eeed6c5954ae483c92bde95136ad8a97");
 define("PLACES_KEY","AIzaSyDvDhrZ4ev2aSiEucD5VdVjaBsCYwISDpw");
 
+// Instantiate the Choreo, using a previously instantiated Temboo_Session object, eg:
+global $session; 
+$session = new Temboo_Session(TEMBOO_NAME, TEMBOO_PROJ, TEMBOO_KEY); 
+
 //set connection to be used across site
 $link = mysql_connect(DB_HOST, DB_USER, DB_PASS) or die("Couldn't make connection.");
 $db = mysql_select_db(DB_NAME, $link) or die("Couldn't select database");
@@ -43,8 +49,6 @@ global $salt;
 $saltAdminemail = "whwhw72heksksk";
 global $saltAdminemail;
 
-//set temboo session varaiable to global
-global $session;
 
 //function to register users
 
@@ -211,13 +215,13 @@ function milesTometers($num){
 
 	return $radiusInmeters;
 
-}
+} //end miles to meters
 
 /*Function to validate email addresses same from Homework assignment*/
 function check_email($email)
 {
 	return preg_match('/^\S+@[\w\d.-]{2,}\.[\w]{2,6}$/iU', $email) ? TRUE : FALSE;
-}
+} //end check email
 
 /*Function to super sanitize anything going near our DBs same one from HW assignment*/
 function filter($data)
@@ -231,7 +235,7 @@ function filter($data)
 
 	$data = mysql_real_escape_string($data);
 	return $data;
-}
+} //end filter
 
 //run this hash on user-entered passwords prior to adding to the database
 function hashpass($pass){
@@ -240,7 +244,7 @@ function hashpass($pass){
 		$passwordmd5 = md5($pwd); 
 
 		return $passwordmd5;
-}
+} //end hashpass
 
 function isvalidPwd($pwd){
 
@@ -253,7 +257,7 @@ function isvalidPwd($pwd){
 		return false;
 	}
 		return true;
-}
+} //end fn
 
 //this logout function is called from the logout page and redirects to login page with a confirmation message
 function logout($logoutmsg){
@@ -272,7 +276,7 @@ function logout($logoutmsg){
 	header("Location: ".SITE_BASE."/login.php?msg=" . $logoutmsg);
 
 
-}
+} //end logout
 
 //used to retrieve password store credentials for email and other items
 function getCredentials($acct){
@@ -287,6 +291,95 @@ function getCredentials($acct){
 	return $credls;
 
 }//end fn
+
+
+//this function returns a list of placedetails including business hours
+function getPlaceDetails($jsonFile){
+
+	global $session;
+	$sensor = false;
+	$listOfdetails = array();
+
+	//Get the details for the specific places which includes business hours
+	$placeDetails = new Google_Places_PlaceDetails($session);
+
+	// Get an input object for the Choreo
+	$placeDetailsInputs = $placeDetails->newInputs();
+
+	// Set inputs
+	$placeDetailsInputs->setKey(PLACES_KEY)->setSensor($sensor)->setResponseFormat("json");
+
+
+
+	for($i=0; $i<count($jsonFile['results']); $i++) {
+
+//echo "Reference is " . $jsonFile['results'][$i]["reference"] . "<br>";
+//echo "Name is " . $jsonFile['results'][$i]["name"] . "<br>";
+
+		$reference = $jsonFile['results'][$i]["reference"];
+
+		$placeDetailsInputs->setReference($reference);
+
+		// Execute Choreo and get results
+		$placeDetailsResults = $placeDetails->execute($placeDetailsInputs)->getResults();
+
+		$listOfdetails[] = json_decode($placeDetailsResults->getResponse(),false);
+
+	}//end for
+
+	return $listOfdetails;
+
+}
+//end fn
+
+
+function getplaceReferences($radius,$btype,$lat,$lng){
+
+	global $session;
+	$resultsArray = array();
+
+	$placeSearch = new Google_Places_PlaceSearch($session);
+
+	// Get an input object for the Choreo
+	$placeSearchInputs = $placeSearch->newInputs();
+
+	// Set inputs
+	$placeSearchInputs->setKey(PLACES_KEY)->setRadius($radius)->setTypes($btype)->setResponseFormat("json")->setLatitude($lat)->setLongitude($lng);
+
+	// Execute Choreo and get results
+	$placeSearchResults = $placeSearch->execute($placeSearchInputs)->getResults();
+
+	$resultsArray = json_decode($placeSearchResults->getResponse(),true);
+
+	return $resultsArray;
+
+}
+//end fn
+
+function getCoordinates($address){
+
+	global $session; 
+	$coordinates = array();
+	$sensor = false;
+
+	$geocodeByAddress = new Google_Geocoding_GeocodeByAddress($session);
+
+	// Get an input object for the Choreo
+	$geocodeByAddressInputs = $geocodeByAddress->newInputs();
+			
+	// Set inputs
+	$geocodeByAddressInputs->setSensor($sensor)->setAddress($address)->setResponseFormat("json");
+
+	// Execute Choreo and get results
+	$geocodeByAddressResults = $geocodeByAddress->execute($geocodeByAddressInputs)->getResults();
+
+	//store the coordinates in an array
+	$coordinates['lat'] = $geocodeByAddressResults->getLatitude();
+	$coordinates['lng'] = $geocodeByAddressResults->getLongitude();
+
+	return $coordinates;
+
+} //end fn
 
 
 
