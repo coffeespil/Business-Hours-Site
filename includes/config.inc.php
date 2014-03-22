@@ -31,6 +31,10 @@ define("PLACES_KEY","AIzaSyDvDhrZ4ev2aSiEucD5VdVjaBsCYwISDpw");
 global $session; 
 $session = new Temboo_Session(TEMBOO_NAME, TEMBOO_PROJ, TEMBOO_KEY); 
 
+//set the sensor globally for choreos
+global $sensor;
+$sensor = false;
+
 //set connection to be used across site
 $link = mysql_connect(DB_HOST, DB_USER, DB_PASS) or die("Couldn't make connection.");
 $db = mysql_select_db(DB_NAME, $link) or die("Couldn't select database");
@@ -297,7 +301,8 @@ function getCredentials($acct){
 function getPlaceDetails($jsonFile){
 
 	global $session;
-	$sensor = false;
+	global $sensor;
+
 	$listOfdetails = array();
 
 	//Get the details for the specific places which includes business hours
@@ -360,7 +365,8 @@ function getCoordinates($address){
 
 	global $session; 
 	$coordinates = array();
-	$sensor = false;
+
+	global $sensor;
 
 	$geocodeByAddress = new Google_Geocoding_GeocodeByAddress($session);
 
@@ -381,6 +387,39 @@ function getCoordinates($address){
 
 } //end fn
 
+//this fn uses google text search api to retrieve place references
+function getPlaceReferencesviaText($qry,$radius){
 
+	global $session;
+	global $sensor;
+
+	// Instantiate the Choreo, using a previously instantiated Temboo_Session object, eg:
+	$get = new Utilities_HTTP_Get($session);
+
+	// Get an input object for the Choreo
+	$getInputs = $get->newInputs();
+
+	// Set inputs for Google Key and Query here. 
+	$getInputs->setRequestParameters("{\"key\": \"" . PLACES_KEY . "\", \"sensor\": '$sensor', \"query\": \"" . $qry . "\", \"radius\": '$radius' }")->setURL("https://maps.googleapis.com/maps/api/place/textsearch/json");
+
+	// Execute Choreo and get results
+	$getResults = $get->execute($getInputs)->getResults();
+
+	$resultsArray = json_decode($getResults->getResponse(),true);
+
+	return $resultsArray;
+} //end fn
+
+function formatOpenClosed($trueFalse){
+
+	if($trueFalse){
+		$state = "Opened";
+	}
+	else{
+		$state = "Closed";
+	}
+
+	return $state;
+}//end fn
 
 ?>

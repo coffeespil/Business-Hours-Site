@@ -20,3 +20,6 @@ div#nav {
 	padding: 10px;
 	text-align: center;
 }
+.currentday{
+	font-weight: bold;
+}
