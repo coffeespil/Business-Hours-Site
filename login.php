@@ -1,5 +1,8 @@
 <?php
 include 'includes/config.inc.php';
+include 'includes/nav.inc.php';
+
+
 
 $errMsgs = array();
 
@@ -30,7 +33,7 @@ if(isset($_POST['submit'])){
 	}	
 
 	//retrieve the password based on the email address
-	$loginQry = mysql_query("SELECT pwd, id, full_name FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt')") or die(mysql_error());
+	$loginQry = mysql_query("SELECT pwd, id, full_name FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt') AND isactivated='Y'") or die(mysql_error());
 
 	list($password,$id,$fname) = mysql_fetch_row($loginQry);
 
@@ -75,6 +78,7 @@ if(isset($_POST['submit'])){
 
 
 ?>
+<head><link rel="stylesheet" type="text/css" href="styles/styles.css"></link></head>
 <title>Login</title>
 <body>
 <div style="background-color:black;color:white;">

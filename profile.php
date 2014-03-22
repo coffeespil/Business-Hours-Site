@@ -1,5 +1,6 @@
 <?php
 include 'includes/config.inc.php';
+include 'includes/nav.inc.php';
 
 session_start(); //carry over any existing session variables with this function
 
@@ -27,7 +28,9 @@ if(isset($_POST['update'])){
 
 ?>
 <title>Update Your Profile</title>
-<head></head>
+<head>
+<link rel="stylesheet" type="text/css" href="styles/styles.css"></link>
+</head>
 <body>
 <form name="profileform" action="<?php echo $_SERVER['PHP_SELF'];?>" method="POST">
 <div align="right"><a href="logout.php">Logout</a></div>

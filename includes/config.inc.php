@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', 'Off');
+error_reporting(E_ALL | E_STRICT);
 
 //define db constants
 define ("DB_HOST", "localhost"); // set database host
@@ -7,6 +9,10 @@ define ("DB_PASS","hci573"); // set database password
 define ("DB_NAME","hci573"); // set database name
 define("USERS","bhours_users_mmorgan");//users table as a constant
 define("FAVES","bhours_users_favorites_mmorgan");//users table as a constant
+define("PSTORE","bhours_pstore_mmorgan"); //password store
+
+//define email address for sending activation emails
+define("ACTIVATION_SWITCH",true);
 
 //site base
 define ("SITE_BASE", "http://".$_SERVER['HTTP_HOST']."/bhours");
@@ -33,6 +39,13 @@ $places = array("accounting","airport","amusement_park","aquarium","art_gallery"
 $salt = "sdhdjhsd8djd9dkdksdksnds";
 global $salt;
 
+//salt for storing admin email
+$saltAdminemail = "whwhw72heksksk";
+global $saltAdminemail;
+
+//set temboo session varaiable to global
+global $session;
+
 //function to register users
 
 function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_code,$activationcode){
@@ -40,13 +53,18 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 	//set the salt for the email address to global so its accessible to the function
 	global $salt;
 	global $link;
-
-	//set the id session for use in the function	
-	$id = $_SESSION['uid'];	
+	global $pass;
+	global $saltAdminemail;
 
 //set the page name so that the function can be reused for profile or register pages
 	$page = basename($_SERVER['PHP_SELF']);
 
+
+//set the id only for logged in users
+if($page == "profile.php"){
+	//set the id session for use in the function	
+	$id = $_SESSION['uid'];	
+							}
 //set the errors array and store the message in there when there are errors
 	$errors = array();
 
@@ -101,17 +119,21 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
   	if($storedEmail['myemail'] != $email){
   						$emailUpdated = true;  //if this is true then we need to check if it exists
   									} //end if
-  								}//end if
+  								}//end if profile
+
 
   	if($page == "register.php" || $emailUpdated){
 
 	//check if the user already exists. if he does then prevent the registration 
 	$userExists = mysql_query("SELECT email FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt')");
-	
-	if(mysql_num_rows($userExists) > 0){
+
+	$userEmail = mysql_fetch_array($userExists);
+
+	if(mysql_num_rows($userEmail) > 0){
 		$errors[] = "A user with email " . $email . " already exists. Please try another email address.";
 	}	
-												} //end if
+												} //end if register
+
 
 //if the array is empty then start the process for adding it to the database
 	if(empty($errors)){
@@ -123,11 +145,48 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 
 	$registerMe = mysql_query("INSERT INTO ".USERS." (full_name, email, pwd, city, state, postal_code, activation_code, last_login) VALUES ('$full_name', AES_ENCRYPT('$email', '$salt'), '$passwrd', '$city', '$state' , '$postal_code' , '$activationcode','$date')", $link) or die("Unable to insert data");
 
-	if($registerMe){
-		$errors[] = "You've registered successfully!";	
-	}//end if
+//get the latest user id from the previous statement and then add a hashed id to the database
+		$id = mysql_insert_id($link); //get the id of the last inserted item
+		$md5 = md5($id);
+		mysql_query("UPDATE ".USERS." SET md5_id='$md5' WHERE id='$id'") or die(mysql_error());
 
-								} //end if
+	if($registerMe){
+
+
+		if(ACTIVATION_SWITCH){
+
+	$errors[] = "You're almost done!  We've sent you an email to verify your email address. Please check it to verify your email address.";	
+			//generate the message
+			$body = "Thanks for registering with Business-Hours.net!\nPlease activate your account:\n"
+			. SITE_BASE . "/activate.php?ac=" . $activationcode . "&em=" . $md5;
+
+			$subject = "Business-Hours Account Activation Email";
+
+			$emailInfo = getCredentials("gmail");
+			$mailFrom = $emailInfo['email'];
+			$mailPwd = $emailInfo['pwd'];
+
+			// Instantiate the Choreo, using a previously instantiated Temboo_Session object, eg:
+			$session = new Temboo_Session(TEMBOO_NAME, TEMBOO_PROJ, TEMBOO_KEY);
+			$sendEmail = new Google_Gmail_SendEmail($session);
+
+			// Get an input object for the Choreo
+			$sendEmailInputs = $sendEmail->newInputs();
+
+			// Set inputs
+			$sendEmailInputs->setMessageBody($body)->setSubject($subject)->setUsername($mailFrom)->setPassword($mailPwd)->setToAddress($email);
+
+			// Execute Choreo and get results
+			$sendEmailResults = $sendEmail->execute($sendEmailInputs)->getResults();
+
+	
+		} //end activation switch
+		else{
+	$errors[] = "You're now successfully registered. Start saving out your favorite places!";	
+		}
+
+						} //end if register me
+							} //end if register.php
 
 	if($page == "profile.php"){
 
@@ -137,13 +196,13 @@ function registerMe($full_name,$email,$pwd,$confirm_pwd,$city,$state,$postal_cod
 	if($updProfile){
 		$errors[] = "You've updated your profile successfully!";	
 	}//end if
-							}//end if							
+							}//end if profile.php							
 
-						}//end if 
+						}//end if for errs
 
 	return $errors;
 
-}
+}//end fn
 
 //convert miles to meters for Google places radius input
 function milesTometers($num){
@@ -214,5 +273,21 @@ function logout($logoutmsg){
 
 
 }
+
+//used to retrieve password store credentials for email and other items
+function getCredentials($acct){
+
+	global $link;
+	global $saltAdminemail; 
+
+	$credentials = mysql_query("SELECT *, AES_DECRYPT(acct_val, '$saltAdminemail') AS email, AES_DECRYPT(acct_pwd, '$saltAdminemail') AS pwd FROM " . PSTORE . " WHERE acct_nam = '$acct'") or die("Unable to get the info!");
+
+	$credls = mysql_fetch_array($credentials);
+
+	return $credls;
+
+}//end fn
+
+
 
 ?>

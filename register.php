@@ -1,5 +1,8 @@
 <?php
+require 'php-sdk/src/temboo.php';
 include 'includes/config.inc.php';
+
+
 
 //initialize the form fields
 $full_name = NULL;

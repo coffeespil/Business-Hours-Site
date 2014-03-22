@@ -1,22 +1,31 @@
 <?php
-//ini_set('display_errors', 'On');
-//error_reporting(E_ALL | E_STRICT);
+include 'includes/config.inc.php';
 
+ini_set('display_errors', 'On');
+error_reporting(E_ALL | E_STRICT);
 
+/*
 define ("DB_HOST", "localhost"); // set database host
 define ("DB_USER", "hci573"); // set database user
 define ("DB_PASS","hci573"); // set database password
 define ("DB_NAME","hci573"); // set database name
+define("PSTORE","bhours_pstore_mmorgan"); //set database name
 define("USERS","bhours_users_mmorgan");//users table as a constant
 define("FAVES","bhours_users_favorites_mmorgan");//users table as a constant
-
+*/
 
 $link = mysql_connect(DB_HOST, DB_USER, DB_PASS) or die("Couldn't make connection.");
 $db = mysql_select_db(DB_NAME, $link) or die("Couldn't select database");
 
+$salt = "whwhw72heksksk";
+$pass = "bizhours";
+$account_name = "gmail";
+$adminEmail = "whatsopened@gmail.com";
+
 //a table to store user info for business hours website project
 $go = mysql_query("CREATE TABLE IF NOT EXISTS ".USERS." (
 id bigint(20) NOT NULL AUTO_INCREMENT,
+md5_id varchar(220) NULL,
 email longblob NOT NULL,
 pwd varchar(220) NOT NULL DEFAULT '',
 full_name varchar(200) NOT NULL,
@@ -24,9 +33,19 @@ city varchar(200) NOT NULL,
 state char(2) NOT NULL,
 postal_code varchar(10) NOT NULL,
 activation_code varchar(250) NOT NULL,
+isactivated char(1) NULL,
 last_login timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
 PRIMARY KEY (id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
+
+$go_again = mysql_query("CREATE TABLE IF NOT EXISTS ".PSTORE." (
+id bigint(20) NOT NULL AUTO_INCREMENT,
+acct_nam varchar(50) NOT NULL,
+acct_val longblob,
+acct_pwd longblob, 
+PRIMARY KEY (id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
+
 
 /*
 //a table to store most frequented locations, includes Google Places API ref id as well API business type and name
@@ -39,7 +58,7 @@ busn_type varchar(220),
 PRIMARY KEY (fave_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
 */
-if($go)
+if($go && $go_again)
 {
 	echo "Installed tables successfully";
 }
@@ -48,6 +67,15 @@ else
 	echo "Unable to install tables";
 }
 
+
+
+$insertEmail = mysql_query("INSERT INTO ".PSTORE." (acct_nam, acct_val, acct_pwd) VALUES ('$account_name',AES_ENCRYPT('$adminEmail', '$salt'),AES_ENCRYPT('$pass', '$salt'))", $link) or die("Unable to insert data");
+
+
+//$info = getCredentials($salt,"gmail");
+
+
+//echo $info['acct_val'] . ":" . $info['acct_pwd'];
 
 /*
 //insert rows into user table. for the purposes of this exercise use the same password. in reality, this wouldnt be the case
@@ -132,7 +160,6 @@ $insertFave10 = mysql_query("INSERT INTO ".FAVES." (id, reference, busn_name, bu
 
 $insertFave11= mysql_query("INSERT INTO ".FAVES." (id, reference, busn_name, busn_type) VALUES (6,'wdwdwdwdwd','Guggenheim','museum')", $link) or die("Unable to insert data");
 */
-
 
 
 
