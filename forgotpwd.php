@@ -29,9 +29,8 @@ if(isset($_POST['submit']) && !isset($_GET['mode'])){
 
 			$userInfo = mysql_fetch_array($userExists);
 
-
-			//hash it again before passing it to the URL string in the email.
-			$md5id = $userInfo['md5_id'];
+			//store out the hashed userid and email it
+			$md5id = $userCount['md5_id'];
 
 			//construct the email message for resetting password and then send it
 
