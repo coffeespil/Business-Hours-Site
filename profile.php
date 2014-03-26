@@ -1,10 +1,11 @@
 <?php
 include 'includes/config.inc.php';
-include 'includes/nav.inc.php';
+//include 'includes/nav.inc.php';
 
-session_start(); //carry over any existing session variables with this function
+secureSession(); //secure the session
 
-$id = $_SESSION['uid']; //store out the user id session variable for use in queries
+print_r($_SESSION);
+
 
 $errMsgs = array();
 
@@ -50,10 +51,15 @@ if(isset($_POST['update'])){
 
 
 //query the db for the user's profile info
-$profileInfo = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM ".USERS." WHERE id = '$id'") or die("Unable to get your info!");
+$profileInfo = mysql_query("SELECT *, AES_DECRYPT(email, '$salt') AS myemail FROM ".USERS." WHERE id = '" . $_SESSION['uid'] . "'") or die("Unable to get your info!");
+
 
 //display their info except for the password
 while($flds = mysql_fetch_array($profileInfo)){
+
+
+//print_r($flds);
+
 ?>
 fullname<br>
 <input type="text" name="full_name" size="100" maxlength="200" value="<?php echo $flds['full_name']; ?>">

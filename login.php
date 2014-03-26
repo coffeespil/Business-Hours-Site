@@ -1,7 +1,6 @@
 <?php
 include 'includes/config.inc.php';
-include 'includes/nav.inc.php';
-
+//include 'includes/nav.inc.php';
 
 
 $errMsgs = array();
@@ -20,7 +19,6 @@ if(isset($_POST['submit'])){
 	$pwd = $_POST['pwd'];
 	$pwdHashed = hashpass($pwd);
 
-//	echo $pwdHashed;
 
 	//check for valid email address using hw function
 	if(empty($email) || !check_email($email)){
@@ -33,13 +31,16 @@ if(isset($_POST['submit'])){
 	}	
 
 	//retrieve the password based on the email address
-	$loginQry = mysql_query("SELECT pwd, id, full_name FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt') AND isactivated='Y'") or die(mysql_error());
+	$result = mysql_query("SELECT pwd, id, full_name FROM " . USERS . " WHERE email = AES_ENCRYPT('$email', '$salt') AND isactivated='Y'") or die(mysql_error());
 
-	list($password,$id,$fname) = mysql_fetch_row($loginQry);
+	$resultRow = mysql_num_rows($result);
+
+	list($password,$id,$fname) = mysql_fetch_row($result);
 
 
 	//logic here for logging in
-	if(mysql_num_rows($loginQry) > 0){
+	if($resultRow > 0){
+
 
 		if(empty($errMsgs)){
 
@@ -52,12 +53,20 @@ if(isset($_POST['submit'])){
 				//clear out old session data and create a new one just in case
 				session_regenerate_id(true);
 
+				//generate a unique session key to be used for securing pages
+				$session = generateSessionkey();
+
 				//store session variables here
 				$_SESSION['uid'] = $id;
 				$_SESSION['full_name'] = $fname;
+				$_SESSION['skey'] = $session;
+				$_SESSION['stime'] = date("Y-m-d H:i:s");
+
+				$updateSession = mysql_query("UPDATE " . USERS . " SET session_key = '$session', session_start = '" . $_SESSION['stime'] . "' WHERE id = '$id'");
 
 				//redirect to a new location
 				header("Location: ".SITE_BASE . "/profile.php");
+				session_regenerate_id(true);
 
 			}//end if
 
@@ -84,10 +93,11 @@ if(isset($_POST['submit'])){
 <div style="background-color:black;color:white;">
 <?php
 
+if(!empty($errMsgs)){
 	foreach ($errMsgs as $errKey => $msg) {
 		echo $msg . "<br>";
-	}
-
+	} //end for
+} //end if
 
 
 ?>
@@ -100,6 +110,8 @@ password<br>
 <input type="password" name="pwd" size="40" maxlength="200"><br>
 <input type="submit" name="submit" value="login">
 </form>	
+<br>
+<a href="forgotpwd.php"/>Forgot password?</a>
 </body>
 
 

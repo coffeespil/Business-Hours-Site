@@ -1,5 +1,4 @@
 <?php
-require 'php-sdk/src/temboo.php';
 include 'includes/config.inc.php';
 
 

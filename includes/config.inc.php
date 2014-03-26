@@ -1,7 +1,7 @@
 <?php
 require 'php-sdk/src/temboo.php';
 
-ini_set('display_errors', 'On');
+ini_set('display_errors', 'Off');
 error_reporting(E_ALL | E_STRICT);
 
 //define db constants
@@ -151,7 +151,9 @@ if($page == "profile.php"){
 
 	if($page == "register.php"){
 
-	$registerMe = mysql_query("INSERT INTO ".USERS." (full_name, email, pwd, city, state, postal_code, activation_code, last_login) VALUES ('$full_name', AES_ENCRYPT('$email', '$salt'), '$passwrd', '$city', '$state' , '$postal_code' , '$activationcode','$date')", $link) or die("Unable to insert data");
+	$create_date = date("Y-m-d H:i:s");
+		
+	$registerMe = mysql_query("INSERT INTO ".USERS." (full_name, email, pwd, city, state, postal_code, activation_code, create_date) VALUES ('$full_name', AES_ENCRYPT('$email', '$salt'), '$passwrd', '$city', '$state' , '$postal_code' , '$activationcode','$create_date')", $link) or die("Unable to insert data");
 
 //get the latest user id from the previous statement and then add a hashed id to the database
 		$id = mysql_insert_id($link); //get the id of the last inserted item
@@ -271,11 +273,13 @@ function logout($logoutmsg){
 		session_start();
 						}
 
-	unset($_SESSION['uid']);
-	unset($_SESSION['full_name']);
+		unset($_SESSION['uid']);
+		unset($_SESSION['full_name']);
+		unset($_SESSION['skey']);
+		unset($_SESSION['stime']);
 
-	session_unset();
-	session_destroy();
+		session_unset();
+		session_destroy();
 
 	header("Location: ".SITE_BASE."/login.php?msg=" . $logoutmsg);
 
@@ -420,6 +424,70 @@ function formatOpenClosed($trueFalse){
 	}
 
 	return $state;
+}//end fn
+
+
+//create a session key to be stored and then used to validate user sessions throughout the site for secure pages
+function generateSessionkey(){
+
+	$hash = "shshdf9dmddmeiwwss9sksks";
+	
+	$sessionKey3 = rand(13273,98176274490);
+	$sessionKey2 = md5(sha1($hash));
+	$sessionKey4 = time();
+
+	$session = $sessionKey3 . $sessionKey2 . $sessionKey4;
+
+	return $session;
+
+}//end fn
+
+function secureSession(){
+
+	session_start();
+
+	$sessionMsg = "Invalid session! Clear your cookies and try logging in again.";
+
+print_r($_SESSION);
+
+
+	//check to ensure no hackers and that its a legit browser
+	if(isset($_SESSION['HTTP_USER_AGENT'])){
+
+			//check session id
+			if(isset($_SESSION['uid']))
+			{
+
+					$sessionDetail = mysql_query("SELECT session_key, session_start FROM " . USERS . " WHERE id ='".$_SESSION['uid']."'") or die(mysql_error());
+
+					list($sessKey, $start_time) = mysql_fetch_row($sessionDetail);
+
+					if(!isset($_SESSION['stime']) && $_SESSION['stime'] != $start_time || !isset($_SESSION['skey']) && $_SESSION['skey'] != $sessKey)
+					{
+						$sessionMsg = "something wrong with the key and time";
+						logout($sessionMsg);
+						exit;
+					}//end if
+					else{
+
+		//				echo "nothing wrong here";
+					}	
+			} //end if
+			else{
+		 			$sessionMsg = "no session id detected";
+				logout($sessionMsg);
+				exit;
+			}
+	}
+	else{
+
+	//check if the current page being accessed is the profile page. if it is, then don't log them out.
+		if(!basename($_SERVER['SCRIPT_NAME']) == 'profile.php'){
+			logout();
+			exit;
+		}
+	}//end if
+
 }//end fn
 
 ?>

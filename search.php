@@ -15,9 +15,9 @@ if(isset($_POST['go'])){
 
 
 			//$coordinates = array();
-			$address = $_POST['address'];
+			$address = filter($_POST['address']);
 
-			$sensor = "false";
+			//$sensor = "false";
 			//$btype = $_POST['btype'];
 			$radius = $_POST['radius'];
 
@@ -68,7 +68,7 @@ if(isset($_POST['go'])){
 
 		$listDisplay .= "<br><br>";
 		$listDisplay .= $listOfdetails['result']["name"] . "<br>";
-		$listDisplay .= $listOfdetails['result']["formatted_address"] . "<br>";
+		$listDisplay .= $listOfdetails['result']["adr_address"] . "<br>";
 		$listDisplay .= $listOfdetails['result']["formatted_phone_number"] . "<br>";
 		$listDisplay .= formatOpenClosed($listOfdetails['result']["opening_hours"]["open_now"]) . "<br><br>";
 
