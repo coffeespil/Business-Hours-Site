@@ -36,7 +36,7 @@ if(isset($_POST['go'])){
 			 
 			$references = array();
 
-
+			//parse the json and store out the ref ids into an array
 			for($i = 0;$i < count($refArray['results']) ; $i++){
 
 				//store out place references to be used to get details
@@ -44,6 +44,8 @@ if(isset($_POST['go'])){
 
 			} //end for
 
+
+			//code to check existing refs goes here///
 
 
 	//Get the details for the specific places which includes business hours

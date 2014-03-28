@@ -39,19 +39,29 @@ acct_pwd longblob,
 PRIMARY KEY (id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
 
+$and_again = mysql_query("CREATE TABLE IF NOT EXISTS ".REFERENCES." (
+ref_id varchar(250) NOT NULL,
+busn_name varchar(220) NOT NULL,
+busn_address varchar(220) NOT NULL,
+phone varchar(20) NULL,
+busn_hours longblob NULL,
+PRIMARY KEY (ref_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
 
-/*
+
+
 //a table to store most frequented locations, includes Google Places API ref id as well API business type and name
 $go_again = mysql_query("CREATE TABLE IF NOT EXISTS ".FAVES." (
 fave_id bigint(20) NOT NULL AUTO_INCREMENT,
-id bigint(20) NOT NULL,
-reference varchar(220),
-busn_name varchar(220),
-busn_type varchar(220),
-PRIMARY KEY (fave_id)
+user_id bigint(20) NOT NULL,
+reference_id varchar(220) NOT NULL,
+PRIMARY KEY (fave_id),
+FOREIGN KEY (user_id) REFERENCES bhours_users_mmorgan(id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;");
-*/
-if($go && $go_again)
+
+
+
+if($go && $go_again && $and_again)
 {
 	echo "Installed tables successfully";
 }

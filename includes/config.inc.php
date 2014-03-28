@@ -1,7 +1,7 @@
 <?php
 require 'php-sdk/src/temboo.php';
 
-ini_set('display_errors', 'Off');
+ini_set('display_errors', 'On');
 error_reporting(E_ALL | E_STRICT);
 
 //define db constants
@@ -12,6 +12,7 @@ define ("DB_NAME","hci573"); // set database name
 define("USERS","bhours_users_mmorgan");//users table as a constant
 define("FAVES","bhours_users_favorites_mmorgan");//users table as a constant
 define("PSTORE","bhours_pstore_mmorgan"); //password store
+define("REFERENCES","bhours_refs_mmorgan"); //reference details store
 
 //define email address for sending activation emails
 define("ACTIVATION_SWITCH",true);
@@ -442,15 +443,23 @@ function generateSessionkey(){
 
 }//end fn
 
+
+function addToFavorites($refs){
+
+	for($i=0 ; $i<count($refs) ; $i++){
+
+		$sqlString = mysql_query("INSERT INTO " . FAVES . " (user_id, reference_id) VALUES('" . $_SESSION['uid'] "','" . $refs[$i]  . "')") or die("unable to insert data");
+								}
+
+}//end fn
+
 function secureSession(){
 
 	session_start();
 
 	$sessionMsg = "Invalid session! Clear your cookies and try logging in again.";
 
-print_r($_SESSION);
-
-
+/*
 	//check to ensure no hackers and that its a legit browser
 	if(isset($_SESSION['HTTP_USER_AGENT'])){
 
@@ -487,6 +496,7 @@ print_r($_SESSION);
 			exit;
 		}
 	}//end if
+	*/
 
 }//end fn
 
