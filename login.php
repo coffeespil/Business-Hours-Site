@@ -2,7 +2,6 @@
 include 'includes/config.inc.php';
 //include 'includes/nav.inc.php';
 
-
 $errMsgs = array();
 
 if(isset($_GET['msg'])){

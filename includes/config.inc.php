@@ -46,6 +46,14 @@ $states = array("AL","AK","AS","AZ","AR","CA","CO","CT","DE","DC","FM","FL","GA"
 //define places array for searching place types
 $places = array("accounting","airport","amusement_park","aquarium","art_gallery","atm","bakery","bank","bar","beauty_salon","bicycle_store","book_store","bowling_alley","bus_station","cafe","campground","car_dealer","car_rental","car_repair","car_wash","casino","cemetery","church","city_hall","clothing_store","convenience_store","courthouse","dentist","department_store","doctor","electrician","electronics_store","embassy","establishment","finance","fire_station","florist","food","funeral_home","furniture_store","gas_station","general_contractor","grocery_or_supermarket","gym","hair_care","hardware_store","health","hindu_temple","home_goods_store","hospital","insurance_agency","jewelry_store","laundry","lawyer","library","liquor_store","local_government_office","locksmith","lodging","meal_delivery","meal_takeaway","mosque","movie_rental","movie_theater","moving_company","museum","night_club","painter","park","parking","pet_store","pharmacy","physiotherapist","place_of_worship","plumber","police","post_office","real_estate_agency","restaurant","roofing_contractor","rv_park","school","shoe_store","shopping_mall","spa","stadium","storage","store","subway_station","synagogue","taxi_stand","train_station","travel_agency","university","veterinary_care","zoo");
 
+//array of days of the week used for displaying store hours
+$days = array("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday");
+global $days;
+
+//store out day of the week in numeric format for display in store hours
+$today = date('w');
+global $today;	
+
 //salt for storing email
 $salt = "sdhdjhsd8djd9dkdksdksnds";
 global $salt;
@@ -301,14 +309,12 @@ function getCredentials($acct){
 
 }//end fn
 
-
 //this function returns a list of placedetails including business hours
-function getPlaceDetails($jsonFile){
+function getPlaceDetails($refArray){
 
 	global $session;
-	global $sensor;
-
-	$listOfdetails = array();
+	global $days;
+	global $today;
 
 	//Get the details for the specific places which includes business hours
 	$placeDetails = new Google_Places_PlaceDetails($session);
@@ -317,31 +323,46 @@ function getPlaceDetails($jsonFile){
 	$placeDetailsInputs = $placeDetails->newInputs();
 
 	// Set inputs
+	$sensor = false;
 	$placeDetailsInputs->setKey(PLACES_KEY)->setSensor($sensor)->setResponseFormat("json");
 
 
+	//iterate through each reference to out place details including store hours
+	for($i = 0 ; $i < count($refArray) ; $i++){
 
-	for($i=0; $i<count($jsonFile['results']); $i++) {
+		$placeDetailsInputs->setReference($refArray[$i]);
 
-//echo "Reference is " . $jsonFile['results'][$i]["reference"] . "<br>";
-//echo "Name is " . $jsonFile['results'][$i]["name"] . "<br>";
-
-		$reference = $jsonFile['results'][$i]["reference"];
-
-		$placeDetailsInputs->setReference($reference);
-
-		// Execute Choreo and get results
+			// Execute Choreo and get results
 		$placeDetailsResults = $placeDetails->execute($placeDetailsInputs)->getResults();
 
-		$listOfdetails[] = json_decode($placeDetailsResults->getResponse(),false);
+		$listOfdetails = json_decode($placeDetailsResults->getResponse(),true);
 
-	}//end for
+		$listDisplay .= "<input type=checkbox name='referenceIDs[]' value='" . $refArray[$i]  . "'/>";
+		$listDisplay .= $listOfdetails['result']["name"] . "<br>";
+		$listDisplay .= $listOfdetails['result']["adr_address"] . "<br>";
+		$listDisplay .= $listOfdetails['result']["formatted_phone_number"] . "<br>";
+		$listDisplay .= formatOpenClosed($listOfdetails['result']["opening_hours"]["open_now"]) . "<br><br>";
 
-	return $listOfdetails;
+					for($j = 0 ; $j < count($listOfdetails['result']["opening_hours"]["periods"]) ; $j++){
 
+						//check if it's todaty's date and highlight the respective row
+						if($days[$listOfdetails['result']["opening_hours"]["periods"][$j]["open"]["day"]] == $days[$today]){
+
+							$listDisplay .= "<b>" . $days[$listOfdetails['result']["opening_hours"]["periods"][$j]["open"]["day"]] . " | " . date("h:i a",strtotime($listOfdetails['result']["opening_hours"]["periods"][$j]["open"]["time"])) . " - " . date("h:i a",strtotime($listOfdetails['result']["opening_hours"]["periods"][$j]["close"]["time"])) . "</b><br>";
+
+						}
+
+						else{
+
+							$listDisplay .= $days[$listOfdetails['result']["opening_hours"]["periods"][$j]["open"]["day"]] . " | " . date("h:i a",strtotime($listOfdetails['result']["opening_hours"]["periods"][$j]["open"]["time"])) . " - " . date("h:i a",strtotime($listOfdetails['result']["opening_hours"]["periods"][$j]["close"]["time"])) . "<br>";
+						} //end if
+					}//end for
+					echo "<br><br>";
+	} //end for 
+
+						return $listDisplay;
 }
 //end fn
-
 
 function getplaceReferences($radius,$btype,$lat,$lng){
 
@@ -396,7 +417,6 @@ function getCoordinates($address){
 function getPlaceReferencesviaText($qry,$radius){
 
 	global $session;
-	global $sensor;
 
 	// Instantiate the Choreo, using a previously instantiated Temboo_Session object, eg:
 	$get = new Utilities_HTTP_Get($session);
@@ -405,7 +425,7 @@ function getPlaceReferencesviaText($qry,$radius){
 	$getInputs = $get->newInputs();
 
 	// Set inputs for Google Key and Query here. 
-	$getInputs->setRequestParameters("{\"key\": \"" . PLACES_KEY . "\", \"sensor\": '$sensor', \"query\": \"" . $qry . "\", \"radius\": '$radius' }")->setURL("https://maps.googleapis.com/maps/api/place/textsearch/json");
+	$getInputs->setRequestParameters("{\"key\": \"" . PLACES_KEY . "\", \"sensor\": 'false', \"query\": \"" . $qry . "\", \"radius\": '$radius' }")->setURL("https://maps.googleapis.com/maps/api/place/textsearch/json");
 
 	// Execute Choreo and get results
 	$getResults = $get->execute($getInputs)->getResults();
@@ -444,18 +464,128 @@ function generateSessionkey(){
 }//end fn
 
 
+//retrieves all of the place references from bhours database
+function getBHoursrefs(){
+
+	$refs = array();
+
+	//get all of the availble ref ids in the db
+	$bhoursRefids = mysql_query("SELECT ref_id from " . REFERENCES . ";");
+
+	while($result = mysql_fetch_array($bhoursRefids)){
+			$refs[] = $result['ref_id']; 
+	} //end while
+
+	return $refs;
+}//end fn
+
+
 function addToFavorites($refs){
 
 	for($i=0 ; $i<count($refs) ; $i++){
 
-		$sqlString = mysql_query("INSERT INTO " . FAVES . " (user_id, reference_id) VALUES('" . $_SESSION['uid'] "','" . $refs[$i]  . "')") or die("unable to insert data");
+		$sqlString = mysql_query("INSERT INTO " . FAVES . " (user_id, reference_id) VALUES('" . $_SESSION['uid'] . "','" . $refs[$i]  . "')") or die("unable to insert data");
 								}
 
 }//end fn
 
+function deleteFavorites($refArray){
+
+	for($i=0 ; $i<count($refArray) ; $i++){
+
+		$sqlString = mysql_query("DELETE FROM " . FAVES . " WHERE user_id='" . $_SESSION['uid'] . "' AND  reference_id='" . $refArray[$i]  . "'") or die(mysql_error());
+
+									}
+
+}//end fn
+
+
+
+function showMyFavorites(){
+
+	$favIDs = array();
+	$myFavorites = array();
+	$placeDetails = array();
+	global $days;
+	global $today;
+
+	//get the references from the db
+	$queryFaves = mysql_query("SELECT reference_id FROM " . FAVES . " WHERE user_id ='" . $_SESSION['uid'] . "'" . ";") or die("unable to locate favorites");
+
+	//store out the references in an array
+	while($favIDs = mysql_fetch_array($queryFaves)){
+		$myFavorites[] = $favIDs['reference_id'];
+	}//end while
+
+	//get the place details for each reference and store it in an array
+	foreach ($myFavorites as $key => $faves) {
+	$placeDetails[] = getDetailsByRef($faves);		
+	}
+
+	//iterate through each reference to out place details including store hours
+	for($i = 0 ; $i < count($placeDetails) ; $i++){
+	
+
+		$listDisplay .= "<input type=checkbox name='referenceIDs[]' value='" . $myFavorites[$i]  . "'/>";
+		$listDisplay .= $placeDetails[$i]['result']["name"] . "<br>";
+		$listDisplay .= $placeDetails[$i]['result']["adr_address"] . "<br>";
+		$listDisplay .= $placeDetails[$i]['result']["formatted_phone_number"] . "<br>";
+		$listDisplay .= formatOpenClosed($placeDetails[$i]['result']["opening_hours"]["open_now"]) . "<br><br>";
+
+					for($j = 0 ; $j < count($placeDetails[$i]['result']["opening_hours"]["periods"]) ; $j++){
+
+
+						//check if it's todaty's date and highlight the respective row
+						if($days[$placeDetails[$i]['result']["opening_hours"]["periods"][$j]["open"]["day"]] == $days[$today]){
+
+							$listDisplay .= "<b>" . $days[$placeDetails[$i]['result']["opening_hours"]["periods"][$j]["open"]["day"]] . " | " . date("h:i a",strtotime($placeDetails[$i]['result']["opening_hours"]["periods"][$j]["open"]["time"])) . " - " . date("h:i a",strtotime($placeDetails[$i]['result']["opening_hours"]["periods"][$j]["close"]["time"])) . "</b><br>";
+
+						}
+
+						else{
+
+							$listDisplay .= $days[$placeDetails[$i]['result']["opening_hours"]["periods"][$j]["open"]["day"]] . " | " . date("h:i a",strtotime($placeDetails[$i]['result']["opening_hours"]["periods"][$j]["open"]["time"])) . " - " . date("h:i a",strtotime($placeDetails[$i]['result']["opening_hours"]["periods"][$j]["close"]["time"])) . "<br>";
+						} //end if
+					}//end for
+					echo "<br><br>";
+	} //end for 
+
+						echo $listDisplay;
+
+
+}//end fn
+
+
+function getDetailsByRef($reference_id){
+
+	global $session;
+
+	// Instantiate the Choreo, using a previously instantiated Temboo_Session object, eg:
+	$get = new Utilities_HTTP_Get($session);
+
+	// Get an input object for the Choreo
+	$getInputs = $get->newInputs();
+
+	// Set inputs for Google Key and Query here. 
+	$getInputs->setRequestParameters("{\"key\": \"" . PLACES_KEY . "\", \"reference\": \"" . $reference_id . "\", \"sensor\": 'false'}")->setURL("https://maps.googleapis.com/maps/api/place/details/json");
+
+	// Execute Choreo and get results
+	$getResults = $get->execute($getInputs)->getResults();
+
+	$resultsArray = json_decode($getResults->getResponse(),true);
+
+	return $resultsArray;
+
+}
+
+
+
+
 function secureSession(){
 
 	session_start();
+
+	print_r($_SESSION);
 
 	$sessionMsg = "Invalid session! Clear your cookies and try logging in again.";
 
@@ -496,8 +626,7 @@ function secureSession(){
 			exit;
 		}
 	}//end if
-	*/
-
+*/
 }//end fn
 
 ?>
