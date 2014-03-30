@@ -23,15 +23,18 @@ $refID = array("CnRuAAAAYdB8X7Sbg9X_nw9gYjmSCTZnmJKkmjhfPyRWfDk0cQ28i0ZLoj1SdmST
 	echo date("h:i a",strtotime($placeDetails[0]['result']["opening_hours"]["periods"][0]["open"]["time"]));
 */
 
+//check submitted favorites from search page
 if(isset($_POST['referenceIDs']) && !empty($_POST['referenceIDs'])){
 
-	$refArray = $_POST['referenceIDs'];
+		$refArray = $_POST['referenceIDs'];
 
-	addToFavorites($refArray);
+		addToFavorites($refArray);
 
-	$Msgs[] = "Your favorites have been added";
+		$Msgs[] = "Your favorites have been added";
+
 }
 
+//if coming from a GET then you're trying to delete an item
 if(isset($_GET['referenceIDs']) && !empty($_GET['referenceIDs']) && isset($_GET['delete'])){
 
 	$refArray = $_GET['referenceIDs'];
@@ -41,10 +44,19 @@ if(isset($_GET['referenceIDs']) && !empty($_GET['referenceIDs']) && isset($_GET[
 	$Msgs[] = "Your favorites have been deleted";
 }
 
+//set the favorites display
+$displayFaves = showMyFavorites();
 
 
 ?>
+<head>
+<script src="<?php echo SITE_BASE; ?>/includes/js/jquery-1.10.2.js"></script>
+<link rel="stylesheet" type="text/css" href="styles/styles.css"></link>
+</head>
 <body>
+<?php
+include 'includes/nav.inc.php';
+?>
 <h1><?php echo $_SESSION['full_name'] . "'s" . " Favorites";?></h1>
 <div style="background-color:black;color:white;">
 <?php
@@ -54,14 +66,24 @@ foreach ($Msgs as $key => $value) {
 ?>
 </div>
 <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="get"> 
-<input type="submit" name="delete" value="delete"/>
 <br>
 <?php
 
-showMyFavorites();
+//only show delete buttons when there are results to delete. otherwise hide them.
+if(!empty($displayFaves)){
+	echo "<input type='submit' name='delete' value='delete'/>";
+	echo $displayFaves;
+}
+else{
+	echo "You currently have no favorites.";
+	echo "<a href='search.php'>Search</a> to add favorites";
+
+}
+//same here. only show when favorites exist
+if(!empty($displayFaves)){
+	echo "<input type='submit' name='delete' value='delete'/>";
+}
 
 ?>
-<br>
-<input type="submit" name="delete" value="delete"/>
 </form>
 </body>

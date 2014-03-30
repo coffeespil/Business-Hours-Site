@@ -46,27 +46,24 @@ if(isset($_POST['submit'])){
 			if($pwdHashed == $password){
 
 				//start the session
-				session_start();
+			//	session_start();
 
 				//clear out old session data and create a new one just in case
-				session_regenerate_id(true);
+				//session_regenerate_id(true);
 
 				//generate a unique session key to be used for securing pages
 				$session = generateSessionkey();
 
 				//store session variables here
-				$_SESSION['uid'] = $id;
-				$_SESSION['full_name'] = $fname;
-				$_SESSION['skey'] = $session;
-				$_SESSION['stime'] = date("Y-m-d H:i:s");
+			//	$_SESSION['uid'] = $id;
+			//	$_SESSION['full_name'] = $fname;
+			//	$_SESSION['skey'] = $session;
+			//	$_SESSION['stime'] = date("Y-m-d H:i:s");
 
-				//encrypt user agent for security
-				$_SESSION['HTTP_USER_AGENT'] = md5($_SERVER['HTTP_USER_AGENT']);
-
-				$updateSession = mysql_query("UPDATE " . USERS . " SET session_key = '$session', session_start = '" . $_SESSION['stime'] . "' WHERE id = '$id'");
+			//	$updateSession = mysql_query("UPDATE " . USERS . " SET session_key = '$session', session_start = '" . $_SESSION['stime'] . "' WHERE id = '$id'");
 
 				//redirect to a new location
-				header("Location: ".SITE_BASE . "/index.php");
+				header("Location: http://www.google.com");
 
 			}//end if
 

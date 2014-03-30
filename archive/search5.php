@@ -1,22 +1,21 @@
 <?php
 include 'includes/config.inc.php';
+include 'includes/nav.inc.php';
 
 secureSession();
 
-$errMsgs = array();
-
 if(isset($_POST['go'])){
 
-		$address = filter($_POST['address']);
-		$radius = $_POST['radius'];
+		if(isset($_POST['address'])){
 
-		//check that something was filled in. otherwise, display a message
-		if(empty($address)){
 
-			$errMsgs[] = "Please provide a zip code and/or a place you're searching for.";
-		}
+			//$coordinates = array();
+			$address = filter($_POST['address']);
 
-		if(isset($address)){
+			//$sensor = "false";
+			//$btype = $_POST['btype'];
+			$radius = $_POST['radius'];
+
 
 			if(empty($radius)){
 				$radius = 1609.34; //default it to 1 mile
@@ -29,7 +28,7 @@ if(isset($_POST['go'])){
 
 
 			$refArray = getPlaceReferencesviaText($address,$radius);
-
+			 
 			$references = array();
 
 			//parse the json and store out the ref ids into an array
@@ -51,33 +50,17 @@ if(isset($_POST['go'])){
 <link rel="stylesheet" type="text/css" href="styles/styles.css"></link>
 </head>
 <body>
-<?php
-include 'includes/nav.inc.php';
-?>
-<div style="background-color:black;color:white;">
-<?php
-	
-	foreach ($errMsgs as $key => $value) {
-		echo $value . "<br>";
-	}
-
-
-?>
-</div>
-<div>
+<div align="center">
 <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
-place name<br>
-<input type="text" name="address" maxlength="200" size="40">
-<br>
-<input type="submit" name="go" value="find nearby">
+<input type="text" name="address" maxlength="200" size="100"><input type="submit" name="go" value="find nearby">
 <input type="text" name="radius" value="">&nbsp;&nbsp;in miles
 </form>
 <form action="<?php echo "favorites.php"; ?>" method="post">
+<input type="submit" name="add" value="add to favorites"><br>
 <div id="result" align="left">
 <?php
 	
 	if(!empty($listDisplay)){
-			echo "<input type='submit' name='add' value='add to favorites'><br>";
 			echo $listDisplay;
 		}
 ?>

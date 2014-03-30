@@ -1,8 +1,8 @@
 <?php
 require 'php-sdk/src/temboo.php';
 
-ini_set('display_errors', 'On');
-error_reporting(E_ALL | E_STRICT);
+//ini_set('display_errors', 'Off');
+//error_reporting(E_ALL | E_STRICT);
 
 //define db constants
 define ("DB_HOST", "localhost"); // set database host
@@ -275,7 +275,7 @@ function isvalidPwd($pwd){
 } //end fn
 
 //this logout function is called from the logout page and redirects to login page with a confirmation message
-function logout($logoutmsg){
+function logout($logoutmsg = NULL){
 
 	//check if there is a session so it can be destroyed properly
 	if(!isset($_SESSION)){
@@ -290,8 +290,12 @@ function logout($logoutmsg){
 		session_unset();
 		session_destroy();
 
-	header("Location: ".SITE_BASE."/login.php?msg=" . $logoutmsg);
-
+	if(isset($logoutmsg)){
+		header("Location: ".SITE_BASE."/login.php?msg=" . $logoutmsg);
+	}
+	else{
+		header("Location: ".SITE_BASE."/login.php");
+	}//end if
 
 } //end logout
 
@@ -550,7 +554,7 @@ function showMyFavorites(){
 					echo "<br><br>";
 	} //end for 
 
-						echo $listDisplay;
+						return $listDisplay;
 
 
 }//end fn
@@ -585,48 +589,49 @@ function secureSession(){
 
 	session_start();
 
-	print_r($_SESSION);
+	//use this default message if anything goes wrong
+	$msg = "Oooops. Something went wrong. Please login again. Or, register";
 
-	$sessionMsg = "Invalid session! Clear your cookies and try logging in again.";
-
-/*
 	//check to ensure no hackers and that its a legit browser
-	if(isset($_SESSION['HTTP_USER_AGENT'])){
+	if(isset($_SERVER['HTTP_USER_AGENT']) && ($_SESSION['HTTP_USER_AGENT'] == md5($_SERVER['HTTP_USER_AGENT']))){
 
 			//check session id
 			if(isset($_SESSION['uid']))
 			{
 
+					//get the session info and then validate ir against session variables to prevent hackers from playing with headers
 					$sessionDetail = mysql_query("SELECT session_key, session_start FROM " . USERS . " WHERE id ='".$_SESSION['uid']."'") or die(mysql_error());
 
 					list($sessKey, $start_time) = mysql_fetch_row($sessionDetail);
 
-					if(!isset($_SESSION['stime']) && $_SESSION['stime'] != $start_time || !isset($_SESSION['skey']) && $_SESSION['skey'] != $sessKey)
+					if(!isset($_SESSION['stime'])) 
 					{
 						$sessionMsg = "something wrong with the key and time";
-						logout($sessionMsg);
+						logout($msg);
 						exit;
 					}//end if
-					else{
-
-		//				echo "nothing wrong here";
-					}	
+					if($_SESSION['stime'] != $start_time){
+						logout($msg);
+						exit;
+					}//end if
+					if(!isset($_SESSION['skey'])){
+						logout($msg);
+						exit;
+					}//end if
+					if($_SESSION['skey'] != $sessKey){
+						logout($msg);	
+						exit;
+					}
+	
 			} //end if
 			else{
-		 			$sessionMsg = "no session id detected";
-				logout($sessionMsg);
+				logout($msg);
 				exit;
 			}
 	}
 	else{
-
-	//check if the current page being accessed is the profile page. if it is, then don't log them out.
-		if(!basename($_SERVER['SCRIPT_NAME']) == 'profile.php'){
-			logout();
-			exit;
-		}
+		logout($msg);
 	}//end if
-*/
 }//end fn
 
 ?>

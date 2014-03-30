@@ -1,10 +1,7 @@
 <?php
 include 'includes/config.inc.php';
-//include 'includes/nav.inc.php';
 
 secureSession(); //secure the session
-
-print_r($_SESSION);
 
 
 $errMsgs = array();
@@ -33,6 +30,9 @@ if(isset($_POST['update'])){
 <link rel="stylesheet" type="text/css" href="styles/styles.css"></link>
 </head>
 <body>
+<?php
+include 'includes/nav.inc.php';
+?>
 <form name="profileform" action="<?php echo $_SERVER['PHP_SELF'];?>" method="POST">
 <div align="right"><a href="logout.php">Logout</a></div>
 <div style="background-color:green;">
